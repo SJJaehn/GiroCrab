@@ -13953,6 +13953,17 @@
         }
       }
     },
+    "Erstattung aus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refund from"
+          }
+        }
+      }
+    },
     "Erstattung dieser Buchung" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34473,6 +34484,17 @@
         }
       }
     },
+    "aus Teil %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "from part %lld"
+          }
+        }
+      }
+    },
     "bereits vorhanden" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34613,6 +34635,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "for %lld of %lld positions"
+          }
+        }
+      }
+    },
+    "für Teil %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for part %lld"
           }
         }
       }

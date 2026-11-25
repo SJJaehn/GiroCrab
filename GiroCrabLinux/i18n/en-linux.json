@@ -1,5 +1,7 @@
 {
   "Keine Erstattungen": "No refunds",
+  "Erstattungen aus Auswertungen herausrechnen": "Exclude refunds from statistics",
+  "Mit einer Buchung verknüpfte Erstattungen verringern deren Betrag in Summen, Budgets und Diagrammen und zählen nicht als Einnahme. Die Buchungen selbst bleiben unverändert.": "Refunds linked to a transaction reduce its amount in totals, budgets and charts and do not count as income. The transactions themselves stay unchanged.",
   "Die Aufteilung hat sich geändert. Bitte erneut versuchen.": "The splits have changed. Please try again.",
   "Eine Änderung wird gerade gespeichert. Bitte warten Sie.": "A change is being saved. Please wait.",
   "Diese Erstattungszuordnung ist nicht möglich.": "This refund assignment is not possible.",

@@ -174,6 +174,18 @@ ScrollView {
                    text: AppModel.autoReviewDelay === "account"
                          ? qsTr("Angeklickte Umsätze werden sofort als gelesen markiert. Beim Wechsel auf ein anderes Konto werden alle übrigen ungelesenen Umsätze des vorherigen Kontos als gelesen markiert, unabhängig von Zeitraum und Filtern.")
                          : qsTr("Eine ausgewählte Buchung gilt nach dieser Zeit als geprüft – wie eine gelesene E-Mail. Bei Mehrfachauswahl nie.") }
+            // refunds/offsets.rs (#714): stored in the vault, so only with an open vault
+            CheckBox {
+                text: qsTr("Erstattungen aus Auswertungen herausrechnen")
+                enabled: AppModel.isUnlocked
+                checked: AppModel.refundsExcludedFromStats
+                onToggled: {
+                    AppModel.setRefundsExcludedFromStats(checked)
+                    checked = Qt.binding(() => AppModel.refundsExcludedFromStats) // a failed write shows the stored value
+                }
+            }
+            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; font.pixelSize: Theme.caption; color: Theme.secondary
+                   text: qsTr("Mit einer Buchung verknüpfte Erstattungen verringern deren Betrag in Summen, Budgets und Diagrammen und zählen nicht als Einnahme. Die Buchungen selbst bleiben unverändert.") }
         }
         // SettingsView.swift › TransferSettingsSection: opt-in clipboard check (#663), per device
         SettingsFormSection {

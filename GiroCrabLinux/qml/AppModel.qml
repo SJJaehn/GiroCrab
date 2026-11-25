@@ -1801,15 +1801,15 @@ QtObject {
     // MARK: - Settings (vault/settings.rs)
     property var settings: []
     function reloadSettings() { run(() => { settings = core("list_settings"); fintsProductIDSource = core("fints_product_id_source")
-                                            refundsExcludedFromStats = core("refunds_excluded_from_stats") }) }
+                                            netRefundsInStats = core("net_refunds_in_stats") }) }
     property string fintsProductIDSource: ""
     function settingEntry(key) { return settings.find(e => e.key === key) || null }
     function saveSetting(key, value) { run(() => core("set_setting", { key: key, value: value })); reloadSettings() }
-    /// Erstattungen aus Auswertungen herausrechnen (#714, refunds/offsets.rs): off by default.
-    property bool refundsExcludedFromStats: false
-    function setRefundsExcludedFromStats(on) {
-        if (!run(() => { core("set_refunds_excluded_from_stats", { excluded: on }); return true })) return
-        refundsExcludedFromStats = on
+    /// Erstattungen mit der Ursprungsbuchung verrechnen (#714, refunds/offsets.rs): off by default.
+    property bool netRefundsInStats: false
+    function setNetRefundsInStats(on) {
+        if (!run(() => { core("set_net_refunds_in_stats", { on: on }); return true })) return
+        netRefundsInStats = on
         reloadStatistics()
     }
     /// Every sum that leaves linked refunds out: sidebar category totals, budgets, the list's
@@ -3209,7 +3209,7 @@ QtObject {
             }, phase, branch)
             // without the setting documentation only (#714): sums stay, only the list markers change
             refundLinksRevision++
-            if (refundsExcludedFromStats) reloadStatistics()
+            if (netRefundsInStats) reloadStatistics()
             else reloadBookings()
         }, failed) } catch (e) { failed(e.message) }
     }

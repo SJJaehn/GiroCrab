@@ -221,7 +221,6 @@ impl Vault {
             7
         };
         let db = self.db()?;
-        self.refund_offsets_ready(&db)?;
         let rows = Self::category_rows(&db)?;
         let ids = Self::category_subtree(&rows, category_id);
         let in_list = |v: &[i64]| v.iter().map(i64::to_string).collect::<Vec<_>>().join(",");
@@ -235,10 +234,11 @@ impl Vault {
              WHERE category_id IN ({}){account_clause}
                AND (?1 IS NULL OR booking_date >= ?1) AND (?2 IS NULL OR booking_date <= ?2)
              GROUP BY m ORDER BY m",
-            crate::planning::effective_sql(
+            self.effective_sql(
+                &db,
                 ", t.account_id AS account_id",
                 crate::planning::sums_condition(account_ids.len())
-            ),
+            )?,
             in_list(&ids)
         );
         let mut stmt = db.prepare(&sql)?;
@@ -267,7 +267,6 @@ impl Vault {
             return Ok(Vec::new());
         }
         let db = self.db()?;
-        self.refund_offsets_ready(&db)?;
         // No booking in another currency (the usual vault): nothing to add, no category tree read.
         if !crate::planning::has_other_currencies(&db)? {
             return Ok(Vec::new());
@@ -285,10 +284,11 @@ impl Vault {
              WHERE category_id IN ({}){account_clause}
                AND (?1 IS NULL OR booking_date >= ?1) AND (?2 IS NULL OR booking_date <= ?2)
              GROUP BY upper(currency) ORDER BY upper(currency)",
-            crate::planning::effective_sql(
+            self.effective_sql(
+                &db,
                 ", t.account_id AS account_id, t.currency AS currency",
                 " AND upper(t.currency) NOT IN ('', 'EUR')"
-            ),
+            )?,
             in_list(&ids)
         );
         let mut stmt = db.prepare(&sql)?;
@@ -323,7 +323,6 @@ impl Vault {
             return Ok(Vec::new());
         }
         let db = self.db()?;
-        self.refund_offsets_ready(&db)?;
         if !crate::planning::has_other_currencies(&db)? {
             return Ok(Vec::new());
         }
@@ -344,7 +343,7 @@ impl Vault {
              WHERE category_id IS NOT NULL
                AND (?1 IS NULL OR booking_date >= ?1) AND (?2 IS NULL OR booking_date <= ?2)
              GROUP BY category_id, upper(currency)",
-            crate::planning::effective_sql(", t.currency AS currency", &condition)
+            self.effective_sql(&db, ", t.currency AS currency", &condition)?
         ))?;
         let checked = checked.map(i64::from);
         let own = stmt
@@ -642,7 +641,6 @@ impl Vault {
         untagged_only: bool,
     ) -> Result<Vec<Category>, CoreError> {
         let db = self.db()?;
-        self.refund_offsets_ready(&db)?;
         let rows = Self::category_rows(&db)?;
         let mut totals: HashMap<Option<i64>, (i64, u32)> = HashMap::new();
         {
@@ -661,7 +659,7 @@ impl Vault {
                 "SELECT category_id, SUM(amount_cents), COUNT(*) FROM {}
                  WHERE (?1 IS NULL OR booking_date >= ?1) AND (?2 IS NULL OR booking_date <= ?2)
                  GROUP BY category_id",
-                crate::planning::effective_sql("", &condition)
+                self.effective_sql(&db, "", &condition)?
             ))?;
             let checked = checked.map(i64::from);
             let it = stmt.query_map(params![date_from, date_to, checked], |r| {

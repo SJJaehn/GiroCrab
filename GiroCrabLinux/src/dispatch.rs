@@ -1843,7 +1843,7 @@ vault_methods! {
     restore_refund(refund_id, refund_part, original_id, original_part, token)
     refund_links(transaction_id) refund_candidates(transaction_id, own_part, query, limit)
     refund_suggestions(transaction_id, own_part)
-    refunds_excluded_from_stats() set_refunds_excluded_from_stats(excluded)
+    net_refunds_in_stats() set_net_refunds_in_stats(on)
     // Buchungsliste: Betragsfilter (#357, ListFilters.qml)
     list_categories_filtered_amount(date_from, date_to, account_ids, checked, direction, amount_min_cents, amount_max_cents, tag_ids, untagged_only)
     category_history_by_unit(category_id, account_ids, date_from, date_to, key_length)
@@ -2360,32 +2360,17 @@ mod tests {
         );
     }
 
-    /// Erstattungen aus Auswertungen herausrechnen (#714, GeneralSettings.qml): off by default,
+    /// Erstattungen mit der Ursprungsbuchung verrechnen (#714, GeneralSettings.qml): off by default,
     /// the switch round-trips.
     #[test]
-    fn refunds_excluded_from_stats_round_trips() {
+    fn net_refunds_in_stats_round_trips() {
         let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
         call_ok("open_demo", json!({}));
-        assert_eq!(
-            call_ok("refunds_excluded_from_stats", json!({})),
-            json!(false)
-        );
-        call_ok(
-            "set_refunds_excluded_from_stats",
-            json!({ "excluded": true }),
-        );
-        assert_eq!(
-            call_ok("refunds_excluded_from_stats", json!({})),
-            json!(true)
-        );
-        call_ok(
-            "set_refunds_excluded_from_stats",
-            json!({ "excluded": false }),
-        );
-        assert_eq!(
-            call_ok("refunds_excluded_from_stats", json!({})),
-            json!(false)
-        );
+        assert_eq!(call_ok("net_refunds_in_stats", json!({})), json!(false));
+        call_ok("set_net_refunds_in_stats", json!({ "on": true }));
+        assert_eq!(call_ok("net_refunds_in_stats", json!({})), json!(true));
+        call_ok("set_net_refunds_in_stats", json!({ "on": false }));
+        assert_eq!(call_ok("net_refunds_in_stats", json!({})), json!(false));
     }
 
     /// AppModel.decodeLogo: PNG width, the largest image of an ICO, unknown formats.

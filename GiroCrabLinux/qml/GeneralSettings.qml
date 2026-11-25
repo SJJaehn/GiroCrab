@@ -174,18 +174,21 @@ ScrollView {
                    text: AppModel.autoReviewDelay === "account"
                          ? qsTr("Angeklickte Umsätze werden sofort als gelesen markiert. Beim Wechsel auf ein anderes Konto werden alle übrigen ungelesenen Umsätze des vorherigen Kontos als gelesen markiert, unabhängig von Zeitraum und Filtern.")
                          : qsTr("Eine ausgewählte Buchung gilt nach dieser Zeit als geprüft – wie eine gelesene E-Mail. Bei Mehrfachauswahl nie.") }
+        }
+        SettingsFormSection {
+            title: qsTr("Auswertungen")
             // refunds/offsets.rs (#714): stored in the vault, so only with an open vault
             CheckBox {
-                text: qsTr("Erstattungen aus Auswertungen herausrechnen")
+                text: qsTr("Erstattungen mit der Ursprungsbuchung verrechnen")
                 enabled: AppModel.isUnlocked
-                checked: AppModel.refundsExcludedFromStats
+                checked: AppModel.netRefundsInStats
                 onToggled: {
-                    AppModel.setRefundsExcludedFromStats(checked)
-                    checked = Qt.binding(() => AppModel.refundsExcludedFromStats) // a failed write shows the stored value
+                    AppModel.setNetRefundsInStats(checked)
+                    checked = Qt.binding(() => AppModel.netRefundsInStats) // a failed write shows the stored value
                 }
             }
             Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; font.pixelSize: Theme.caption; color: Theme.secondary
-                   text: qsTr("Mit einer Buchung verknüpfte Erstattungen verringern deren Betrag in Summen, Budgets und Diagrammen und zählen nicht als Einnahme. Die Buchungen selbst bleiben unverändert.") }
+                   text: qsTr("Eine verknüpfte Erstattung zählt in Summen, Budgets und Diagrammen nicht als Einnahme, sondern verringert den Betrag ihrer Ursprungsbuchung, auch rückwirkend in deren Monat. Buchungen, Liste und Kontostände bleiben unverändert.") }
         }
         // SettingsView.swift › TransferSettingsSection: opt-in clipboard check (#663), per device
         SettingsFormSection {

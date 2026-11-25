@@ -4385,8 +4385,8 @@ mod round9 {
     }
 }
 
-/// Linked refunds left out of the statistics (opt-in, `stats.exclude_refunds`).
-mod stats_exclusion {
+/// Linked refunds netted in the statistics (opt-in, `stats.net_refunds`).
+mod stats_netting {
     use super::*;
     use crate::models::{BookingDirection, BookingFilter};
 
@@ -4443,7 +4443,7 @@ mod stats_exclusion {
     #[test]
     fn off_by_default_the_sums_keep_the_stored_amounts() {
         let l = ledger();
-        assert!(!l.f.v.refunds_excluded_from_stats().unwrap());
+        assert!(!l.f.v.net_refunds_in_stats().unwrap());
         assert_eq!(totals(&l), (-10_000, 3_000));
     }
 
@@ -4451,8 +4451,8 @@ mod stats_exclusion {
     fn on_the_refund_leaves_the_sums_and_reduces_the_original() {
         let l = ledger();
         let before = flow(&l);
-        l.f.v.set_refunds_excluded_from_stats(true).unwrap();
-        assert!(l.f.v.refunds_excluded_from_stats().unwrap());
+        l.f.v.set_net_refunds_in_stats(true).unwrap();
+        assert!(l.f.v.net_refunds_in_stats().unwrap());
         assert_eq!(totals(&l), (-7_000, 0));
         let history =
             l.f.v
@@ -4474,7 +4474,7 @@ mod stats_exclusion {
         };
         assert_eq!((amount(l.original), amount(l.refund)), (-10_000, 3_000));
         // and off again restores the stored sums
-        l.f.v.set_refunds_excluded_from_stats(false).unwrap();
+        l.f.v.set_net_refunds_in_stats(false).unwrap();
         assert_eq!(totals(&l), (-10_000, 3_000));
         assert_eq!(flow(&l), before);
     }
@@ -4482,7 +4482,7 @@ mod stats_exclusion {
     #[test]
     fn a_new_link_or_an_unlink_moves_the_sums_at_once() {
         let l = ledger();
-        l.f.v.set_refunds_excluded_from_stats(true).unwrap();
+        l.f.v.set_net_refunds_in_stats(true).unwrap();
         assert_eq!(totals(&l), (-7_000, 0));
         l.f.unlink(l.refund, "", l.original, "");
         assert_eq!(totals(&l), (-10_000, 3_000));
@@ -4506,7 +4506,7 @@ mod stats_exclusion {
         );
         l.f.unlink(l.refund, "", l.original, "");
         l.f.link(l.refund, "", l.original, &parts[1]);
-        l.f.v.set_refunds_excluded_from_stats(true).unwrap();
+        l.f.v.set_net_refunds_in_stats(true).unwrap();
         let cats =
             l.f.v
                 .list_categories_filtered(None, None, Vec::new(), None, BookingDirection::All)
@@ -4551,11 +4551,11 @@ mod stats_exclusion {
             (rows[0].income_cents, rows[0].expense_cents)
         };
         let (spent_before, cash_before) = (spent(&l), cash(&l));
-        l.f.v.set_refunds_excluded_from_stats(true).unwrap();
+        l.f.v.set_net_refunds_in_stats(true).unwrap();
         assert_eq!(spent(&l), 7_000);
         assert_ne!(spent_before, spent(&l));
         assert_eq!(cash(&l), (0, 7_000));
-        l.f.v.set_refunds_excluded_from_stats(false).unwrap();
+        l.f.v.set_net_refunds_in_stats(false).unwrap();
         assert_eq!(cash(&l), cash_before);
     }
 }

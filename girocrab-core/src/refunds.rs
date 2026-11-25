@@ -16,7 +16,7 @@ mod store;
 #[cfg(test)]
 mod tests;
 
-pub use offsets::EXCLUDE_REFUNDS_KEY;
+pub use offsets::NET_REFUNDS_KEY;
 pub(crate) use offsets::OffsetSlot;
 pub(crate) use store::{fold_booking, merge_attached, merge_folded, move_booking, move_endpoints};
 

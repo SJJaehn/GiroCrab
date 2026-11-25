@@ -213,18 +213,19 @@ the same category already does that today. Allocated cents are only shown: as
 row markers, in the refund card and as the open capacity in the assignment
 dialog (#714: "links must not change amounts, categories or balances").
 
-### Opt-in: refunds left out of the statistics
+### Opt-in: refunds netted in the statistics
 
-The setting `stats.exclude_refunds` (off by default, per device) leaves linked
-refunds out of the statistics: the refund endpoint counts `amount - allocated`,
+The setting `stats.net_refunds` (off by default, per device) nets linked
+refunds against their originals in the statistics: the refund endpoint counts `amount - allocated`,
 the original endpoint `amount + allocated`. This applies to category totals and
 history, budgets, selection sums and KPI tiles, cashflow and tag totals. Bookings,
 list rows, balances and the local API keep the stored amounts. The aggregates read
 amounts through the SQL functions `refund_offset(id, part)` and
 `refund_offset_total(id)` (`girocrab-core/src/refunds/offsets.rs`), backed by the
-same allocation as the refund card and rebuilt per data stamp before each
-aggregate. Unlike the archived projection, it keeps every booking in its own
-category and date and adds no second read path per report.
+same allocation as the refund card. Only `Vault::effective_sql` and `filter_clauses`
+hand out SQL that calls them, and both rebuild the offsets for the current data
+stamp first. The refunded amount counts in the original's category and month, also
+retroactively. Unlike the archived projection, it adds no second read path per report.
 
 ## Not covered
 

@@ -142,14 +142,6 @@ struct GeneralSettings: View {
                 Toggle("Budgets anzeigen", isOn: $showBudgets)
                 Text("Wer keine Monatsbudgets nutzt, blendet die Budget-Karte und „Monatsbudget festlegen …“ ganz aus. Auch im Menü Ansicht umschaltbar.")
                     .appFont(.caption).foregroundStyle(.secondary)
-                // core setting of the vault (#714): every statistic reloads
-                Toggle("Erstattungen aus Auswertungen herausrechnen", isOn: Binding(
-                    get: { model.refundsExcludedFromStats },
-                    set: { on in Task { await model.setRefundsExcludedFromStats(on) } }
-                ))
-                .disabled(!model.isUnlocked)
-                Text("Mit einer Buchung verknüpfte Erstattungen verringern deren Betrag in Summen, Budgets und Diagrammen und zählen nicht als Einnahme. Die Buchungen selbst bleiben unverändert.")
-                    .appFont(.caption).foregroundStyle(.secondary)
                 Toggle("Saldo in der Buchungsliste anzeigen", isOn: $showRunningBalance)
                 Text("Zeigt den Kontostand nach jeder Buchung und am Ende jedes Tages, zum Abgleich mit dem Kontoauszug. Bei mehreren Konten die Summe der Euro-Konten ohne Depots und Darlehen. Innerhalb eines Tages kann die Reihenfolge von der Bank abweichen, der Tagessaldo stimmt immer. Auch im Menü Ansicht umschaltbar.")
                     .appFont(.caption).foregroundStyle(.secondary)
@@ -181,6 +173,16 @@ struct GeneralSettings: View {
                 Text("Wie weit GiroCrab beim ersten Abruf eines neuen Zugangs zurückgeht. „Maximum“ reicht so weit zurück, wie Bank und Anbindung es zulassen. Für mehr als 90 Tage verlangen viele Banken eine TAN. Bestehende Zugänge rufen weiter ab ihrem neuesten Umsatz ab.")
                     .appFont(.caption).foregroundStyle(.secondary)
             } header: { Text("Buchungen").appSectionHeader() }
+            Section {
+                // core setting of the vault (#714): every statistic reloads
+                Toggle("Erstattungen mit der Ursprungsbuchung verrechnen", isOn: Binding(
+                    get: { model.netRefundsInStats },
+                    set: { on in Task { await model.setNetRefundsInStats(on) } }
+                ))
+                .disabled(!model.isUnlocked)
+                Text("Eine verknüpfte Erstattung zählt in Summen, Budgets und Diagrammen nicht als Einnahme, sondern verringert den Betrag ihrer Ursprungsbuchung, auch rückwirkend in deren Monat. Buchungen, Liste und Kontostände bleiben unverändert.")
+                    .appFont(.caption).foregroundStyle(.secondary)
+            } header: { Text("Auswertungen").appSectionHeader() }
             TransferSettingsSection()
             BalanceChartSettingsSection()
             #if os(macOS)

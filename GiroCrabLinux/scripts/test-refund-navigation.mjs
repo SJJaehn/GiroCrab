@@ -323,7 +323,7 @@ test("a refund link change reloads the statistics only while refunds are left ou
         let applied;
         const s = {
             refundEditing: false, isUnlocked: true, vaultLoaded: true, vaultGeneration: 1, refundLinksRevision: 0,
-            refundsExcludedFromStats: excluded,
+            netRefundsInStats: excluded,
             UndoManager: { phase: 0, branch: 0, register() {} },
             core() { return "vault"; },
             run(fn) { return fn(); },
@@ -342,7 +342,7 @@ test("a refund link change reloads the statistics only while refunds are left ou
 test("the statistics setting reloads every sum after a successful write only", () => {
     const calls = [];
     const s = {
-        refundsExcludedFromStats: false, fails: false,
+        netRefundsInStats: false, fails: false,
         run(fn) { try { return fn(); } catch (e) { return undefined; } },
         core(method, args) { if (s.fails) throw new Error("locked"); calls.push([method, args]); },
         reloadCategories() { calls.push("categories"); }, reloadBookings() { calls.push("bookings"); },
@@ -350,13 +350,13 @@ test("the statistics setting reloads every sum after a successful write only", (
     };
     vm.createContext(s);
     vm.runInContext(`function reloadStatistics() {${bodyAfter("function reloadStatistics()")}}`, s);
-    const set = on => vm.runInContext(`(function(on) {${bodyAfter("function setRefundsExcludedFromStats(on)")}})(${on})`, s);
+    const set = on => vm.runInContext(`(function(on) {${bodyAfter("function setNetRefundsInStats(on)")}})(${on})`, s);
     set(true);
-    assert.equal(s.refundsExcludedFromStats, true);
-    assert.deepEqual(JSON.parse(JSON.stringify(calls)), [["set_refunds_excluded_from_stats", { excluded: true }], "categories", "bookings", "planning", "dashboard"]);
+    assert.equal(s.netRefundsInStats, true);
+    assert.deepEqual(JSON.parse(JSON.stringify(calls)), [["set_net_refunds_in_stats", { on: true }], "categories", "bookings", "planning", "dashboard"]);
     calls.length = 0;
     s.fails = true;
     set(false);
-    assert.equal(s.refundsExcludedFromStats, true);
+    assert.equal(s.netRefundsInStats, true);
     assert.deepEqual(calls, []);
 });

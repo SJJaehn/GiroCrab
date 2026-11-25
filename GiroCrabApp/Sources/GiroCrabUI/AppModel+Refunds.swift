@@ -194,10 +194,10 @@ extension AppModel {
     }
 
     private func refundLinksChanged() async {
-        // Links are documentation only (#714) unless refunds leave the statistics: then totals,
+        // Links are documentation only (#714) unless refunds are netted in the statistics: then totals,
         // charts and the dashboard follow too; otherwise only the list markers and the refund card change.
         refundRevision &+= 1
-        if refundsExcludedFromStats { invalidateTotals(); reloadDashboard() }
+        if netRefundsInStats { invalidateTotals(); reloadDashboard() }
         if let id = stickyBooking?.id, let pin = pinVault() {
             let generation = listGeneration
             let fresh = try? await pin.run { try Self.refundBookings(in: $0, ids: [id])[id] }
@@ -209,28 +209,28 @@ extension AppModel {
         startSelectionLoad(keepingShown: true)
     }
 
-    /// Einstellungen › Allgemein „Erstattungen aus Auswertungen herausrechnen“ (#714). Queued behind
+    /// Einstellungen › Allgemein › Auswertungen „Erstattungen mit der Ursprungsbuchung verrechnen“ (#714). Queued behind
     /// earlier writes of the Settings window (`settingsWriteTask`) and run off the main thread;
     /// every statistic loads again, the shown data stays until then.
-    func setRefundsExcludedFromStats(_ excluded: Bool) async {
+    func setNetRefundsInStats(_ on: Bool) async {
         guard let vault else { return }
-        refundsExcludedFromStats = excluded
+        netRefundsInStats = on
         let previous = settingsWriteTask
         let write = Task { @MainActor () async throws -> Bool in
             await previous?.value
             return try await Self.offMain {
-                try vault.setRefundsExcludedFromStats(excluded: excluded)
-                return try vault.refundsExcludedFromStats()
+                try vault.setNetRefundsInStats(on: on)
+                return try vault.netRefundsInStats()
             }
         }
         settingsWriteTask = Task { _ = try? await write.value }
         do {
             let stored = try await write.value
             guard self.vault === vault else { return }
-            refundsExcludedFromStats = stored
+            netRefundsInStats = stored
         } catch {
             guard self.vault === vault else { return }
-            refundsExcludedFromStats = !excluded // the write failed: the stored value is unchanged
+            netRefundsInStats = !on // the write failed: the stored value is unchanged
             errorMessage = describe(error)
         }
         refundStatsChanged()

@@ -1,4 +1,4 @@
-//! Refunds left out of the statistics (#714, opt-in): with `stats.exclude_refunds` on, every
+//! Linked refunds netted in the statistics (#714, opt-in): with `stats.net_refunds` on, every
 //! active refund link takes its allocated amount out of the sums. The refund endpoint counts
 //! `amount - allocated` (a full refund counts zero), the original `amount + allocated` (a
 //! refunded purchase counts only what was kept). Bookings, their list rows and balances never
@@ -6,7 +6,8 @@
 //!
 //! `refund_offset(id, part)` is the offset of one endpoint (`''` = the whole booking),
 //! `refund_offset_total(id)` the sum over all endpoints of a booking. Both read the map the
-//! last [`Vault::refund_offsets_ready`] built: every aggregate calls it before its query.
+//! last [`Vault::refund_offsets_ready`] built. Aggregates never call it themselves: they get
+//! their SQL from [`Vault::effective_sql`] or `filter_clauses`, which bring the map up to date.
 
 use std::collections::HashMap;
 use std::sync::{Arc, PoisonError, RwLock};
@@ -19,7 +20,7 @@ use crate::vault::Vault;
 use crate::vault::cache::DataStamp;
 
 /// The setting (`"1"` = on). Off by default: refund links are documentation only.
-pub const EXCLUDE_REFUNDS_KEY: &str = "stats.exclude_refunds";
+pub const NET_REFUNDS_KEY: &str = "stats.net_refunds";
 
 #[derive(Default)]
 pub(crate) struct Offsets {
@@ -81,15 +82,15 @@ impl OffsetSlot {
 }
 
 impl Vault {
-    /// Whether linked refunds are left out of the statistics.
-    pub(crate) fn refunds_excluded(db: &Connection) -> CoreResult<bool> {
-        Ok(Self::setting_inner(db, EXCLUDE_REFUNDS_KEY)?.is_some_and(|v| v == "1"))
+    /// Whether linked refunds are netted in the statistics.
+    pub(crate) fn refunds_netted(db: &Connection) -> CoreResult<bool> {
+        Ok(Self::setting_inner(db, NET_REFUNDS_KEY)?.is_some_and(|v| v == "1"))
     }
 
     /// Brings the offsets the SQL functions read up to date with the setting and the data
     /// `db` shows. Every aggregate calls it before a query that uses them.
     pub(crate) fn refund_offsets_ready(&self, db: &Connection) -> CoreResult<()> {
-        let on = Self::refunds_excluded(db)?;
+        let on = Self::refunds_netted(db)?;
         let stamp = self.data_stamp(db);
         let slot = &self.refund_offsets.0;
         if slot.read().unwrap_or_else(PoisonError::into_inner).0 == Some((on, stamp)) {
@@ -114,20 +115,17 @@ impl Vault {
 
 #[uniffi::export]
 impl Vault {
-    /// Whether linked refunds are left out of all statistics (category totals, budgets,
-    /// KPI tiles, cash flow, tag totals). Off by default.
-    pub fn refunds_excluded_from_stats(&self) -> Result<bool, crate::error::CoreError> {
-        Self::refunds_excluded(&*self.db()?)
+    /// Whether linked refunds are netted against their original bookings in the statistics
+    /// (category totals and history, budgets, KPI tiles, cash flow, tag totals). Off by default.
+    pub fn net_refunds_in_stats(&self) -> Result<bool, crate::error::CoreError> {
+        Self::refunds_netted(&*self.db()?)
     }
 
-    /// Turns leaving linked refunds out of the statistics on or off.
-    pub fn set_refunds_excluded_from_stats(
-        &self,
-        excluded: bool,
-    ) -> Result<(), crate::error::CoreError> {
+    /// Turns netting linked refunds in the statistics on or off.
+    pub fn set_net_refunds_in_stats(&self, on: bool) -> Result<(), crate::error::CoreError> {
         self.set_setting(
-            EXCLUDE_REFUNDS_KEY.to_string(),
-            if excluded { "1" } else { "" }.to_string(),
+            NET_REFUNDS_KEY.to_string(),
+            if on { "1" } else { "" }.to_string(),
         )
     }
 }

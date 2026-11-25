@@ -66,10 +66,19 @@ pub(crate) fn has_other_currencies(conn: &rusqlite::Connection) -> rusqlite::Res
 /// `extra`: more columns of `t` (e.g. ", t.currency AS currency"); `condition`:
 /// more conditions on `t` (e.g. " AND t.account_id = ?1"). Both appear in both
 /// halves of the UNION, so `condition` must use numbered parameters.
-/// Amounts leave out linked refunds when the user chose so (`refund_offset`, #714): call
-/// `Vault::refund_offsets_ready` before running the query.
-pub(crate) fn effective_sql(extra: &str, condition: &str) -> String {
-    effective_rows(extra, condition, true)
+/// Amounts net linked refunds against their originals when the user chose so
+/// (`refund_offset`, #714). Only this method hands out that SQL: it brings the offsets the
+/// function reads up to date with `db` first, so no aggregate can read a stale map.
+impl Vault {
+    pub(crate) fn effective_sql(
+        &self,
+        db: &rusqlite::Connection,
+        extra: &str,
+        condition: &str,
+    ) -> Result<String, CoreError> {
+        self.refund_offsets_ready(db)?;
+        Ok(effective_rows(extra, condition, true))
+    }
 }
 
 /// `effective_sql` with the stored amounts, whatever the refund setting (local interface).
@@ -146,14 +155,13 @@ impl Vault {
     ) -> Result<Vec<CategoryBudgetStatus>, CoreError> {
         let (from, to) = month_range(year, month)?;
         let db = self.db()?;
-        self.refund_offsets_ready(&db)?;
         let mut own: HashMap<Option<i64>, i64> = HashMap::new();
         {
             let mut stmt = db.prepare(&format!(
                 "SELECT category_id, SUM(amount_cents) FROM {}
                  WHERE booking_date >= ?1 AND booking_date <= ?2 GROUP BY category_id",
                 // budgets are amounts in EUR: other currencies are never added to them (#1049)
-                effective_sql("", sums_condition(0))
+                self.effective_sql(&db, "", sums_condition(0))?
             ))?;
             for row in stmt.query_map(params![from, to], |r| {
                 Ok((r.get::<_, Option<i64>>(0)?, r.get::<_, i64>(1)?))

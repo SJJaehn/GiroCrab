@@ -6616,6 +6616,17 @@
         }
       }
     },
+    "Auswertungen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistics"
+          }
+        }
+      }
+    },
     "Auswertungen anzeigen" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14154,6 +14165,17 @@
         }
       }
     },
+    "Eine verknüpfte Erstattung zählt in Summen, Budgets und Diagrammen nicht als Einnahme, sondern verringert den Betrag ihrer Ursprungsbuchung, auch rückwirkend in deren Monat. Buchungen, Liste und Kontostände bleiben unverändert." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A linked refund no longer counts as income in totals, budgets and charts; it reduces the amount of its original booking instead, also retroactively in that booking's month. Bookings, the list and balances stay unchanged."
+          }
+        }
+      }
+    },
     "Einfügen" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15197,13 +15219,13 @@
         }
       }
     },
-    "Erstattungen aus Auswertungen herausrechnen" : {
+    "Erstattungen mit der Ursprungsbuchung verrechnen" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leave refunds out of reports"
+            "value" : "Net refunds against their original booking"
           }
         }
       }
@@ -24240,17 +24262,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "With an interest rate, only the principal share of each payment counts (interest accrues daily). Without one, the whole payment reduces the balance."
-          }
-        }
-      }
-    },
-    "Mit einer Buchung verknüpfte Erstattungen verringern deren Betrag in Summen, Budgets und Diagrammen und zählen nicht als Einnahme. Die Buchungen selbst bleiben unverändert." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refunds linked to a transaction reduce its amount in totals, budgets and charts and do not count as income. The transactions themselves stay unchanged."
           }
         }
       }

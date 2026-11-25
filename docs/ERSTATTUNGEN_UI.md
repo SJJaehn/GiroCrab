@@ -51,7 +51,10 @@ Die Schaltfläche zum Bearbeiten der Zuordnung bleibt erhalten.
 Die Zuordnung verändert weder Bankbuchungen noch Splits, Kategorien, Kontostände
 oder Auswertungen: Sie dokumentiert nur, welche Erstattung zu welcher Buchung gehört.
 Soll eine Erstattung eine Ausgabe in den Auswertungen ausgleichen, ordnet man ihr
-dieselbe Kategorie zu. Zuteilung und Kapazitäten berechnet ausschließlich der Kern.
+dieselbe Kategorie zu oder schaltet in den Einstellungen „Erstattungen aus
+Auswertungen herausrechnen“ ein: Dann zählt die Erstattung nicht als Einnahme und
+die Ursprungsbuchung nur mit dem behaltenen Betrag (Summen, Budgets, Kennzahlen,
+Cashflow, Tag-Summen). Buchungen, Liste und Kontostände bleiben unverändert. Zuteilung und Kapazitäten berechnet ausschließlich der Kern.
 
 Das Kreuz unter macOS und Linux entfernt genau eine Verknüpfung. Unter macOS stellen
 „Rückgängig“ im Blatt und der Widerrufen-Befehl sie wieder her, unter Linux der

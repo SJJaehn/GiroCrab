@@ -22,7 +22,8 @@ the [refund UI guide](../ERSTATTUNGEN_UI.md) describes platform interactions.
 1. Preserve bank bookings, user-authored splits and account balances.
 2. Converge across snapshot merge orders and different local database ids.
 3. Resolve changed endpoints conservatively, without expanding the user's intent.
-4. Leave every report unchanged: a link is documentation, not bookkeeping.
+4. Leave every report unchanged by default: a link is documentation, not bookkeeping.
+   Netting refunds in the statistics is an explicit opt-in.
 5. Make undo conditional.
 
 ## Decision
@@ -212,6 +213,19 @@ the same category already does that today. Allocated cents are only shown: as
 row markers, in the refund card and as the open capacity in the assignment
 dialog (#714: "links must not change amounts, categories or balances").
 
+### Opt-in: refunds left out of the statistics
+
+The setting `stats.exclude_refunds` (off by default, per device) leaves linked
+refunds out of the statistics: the refund endpoint counts `amount - allocated`,
+the original endpoint `amount + allocated`. This applies to category totals and
+history, budgets, selection sums and KPI tiles, cashflow and tag totals. Bookings,
+list rows, balances and the local API keep the stored amounts. The aggregates read
+amounts through the SQL functions `refund_offset(id, part)` and
+`refund_offset_total(id)` (`girocrab-core/src/refunds/offsets.rs`), backed by the
+same allocation as the refund card and rebuilt per data stamp before each
+aggregate. Unlike the archived projection, it keeps every booking in its own
+category and date and adds no second read path per report.
+
 ## Not covered
 
 Bank booking amount sync changes, per-part split conflict merging and cross-currency
@@ -249,7 +263,8 @@ back into existence; the UI omits it and may require an explicit new assignment.
 Concurrent creations of the same natural key take the winning row's priority,
 not necessarily the earliest creation seen on either peer.
 
-Reports need no refund awareness. UUID migration, exact id maps, retained tombstones and caches add complexity
+Reports need no refund awareness unless the opt-in is on; then they read amounts
+through `effective_sql` or the KPI share, never their own allocation. UUID migration, exact id maps, retained tombstones and caches add complexity
 and storage cost. Revisit this decision if endpoints need a different durable
 identity or scoped/currency semantics change, rather than adding UI-only repairs.
 

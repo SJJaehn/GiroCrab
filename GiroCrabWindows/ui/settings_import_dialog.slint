@@ -76,6 +76,8 @@ export global SettingsImportState {
     in-out property <int> mode: 0;
     in property <string> mode-source;
     callback mode-changed(int);
+    in-out property <bool> exclude-refunds: false;
+    callback exclude-refunds-changed(bool);
     // ---- Abrufprotokoll
     in property <[SiRow]> log;
     in property <string> log-summary;
@@ -322,6 +324,13 @@ export component SettingsImportPanel inherits VerticalLayout {
                 Button { text: "Speichern"; primary: true; enabled: !SettingsImportState.busy; clicked => { SettingsImportState.setting-save(); } }
             }
         }
+        CheckBox {
+            text: "Erstattungen aus Auswertungen herausrechnen";
+            checked <=> SettingsImportState.exclude-refunds;
+            enabled: !SettingsImportState.busy;
+            toggled => { SettingsImportState.exclude-refunds-changed(self.checked); }
+        }
+        Info { text: "Mit einer Buchung verknüpfte Erstattungen verringern deren Betrag in Summen, Budgets und Diagrammen und zählen nicht als Einnahme. Die Buchungen selbst bleiben unverändert."; ink: root.muted; }
         UpdatesSection { }
     } }
 

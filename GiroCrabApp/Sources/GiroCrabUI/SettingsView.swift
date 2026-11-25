@@ -142,6 +142,14 @@ struct GeneralSettings: View {
                 Toggle("Budgets anzeigen", isOn: $showBudgets)
                 Text("Wer keine Monatsbudgets nutzt, blendet die Budget-Karte und „Monatsbudget festlegen …“ ganz aus. Auch im Menü Ansicht umschaltbar.")
                     .appFont(.caption).foregroundStyle(.secondary)
+                // core setting of the vault (#714): every statistic reloads
+                Toggle("Erstattungen aus Auswertungen herausrechnen", isOn: Binding(
+                    get: { model.refundsExcludedFromStats },
+                    set: { on in Task { await model.setRefundsExcludedFromStats(on) } }
+                ))
+                .disabled(!model.isUnlocked)
+                Text("Mit einer Buchung verknüpfte Erstattungen verringern deren Betrag in Summen, Budgets und Diagrammen und zählen nicht als Einnahme. Die Buchungen selbst bleiben unverändert.")
+                    .appFont(.caption).foregroundStyle(.secondary)
                 Toggle("Saldo in der Buchungsliste anzeigen", isOn: $showRunningBalance)
                 Text("Zeigt den Kontostand nach jeder Buchung und am Ende jedes Tages, zum Abgleich mit dem Kontoauszug. Bei mehreren Konten die Summe der Euro-Konten ohne Depots und Darlehen. Innerhalb eines Tages kann die Reihenfolge von der Bank abweichen, der Tagessaldo stimmt immer. Auch im Menü Ansicht umschaltbar.")
                     .appFont(.caption).foregroundStyle(.secondary)

@@ -945,6 +945,7 @@ extension AppModel {
             settings = try vault.listSettings()
             logoProvider = try vault.onlineLogoProvider()
             merchantRecognitionEnabled = try vault.merchantRecognitionEnabled()
+            refundsExcludedFromStats = try vault.refundsExcludedFromStats()
         }
         reloadProductIDState(vault)
     }

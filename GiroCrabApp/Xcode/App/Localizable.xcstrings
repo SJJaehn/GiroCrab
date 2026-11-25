@@ -12114,6 +12114,17 @@
         }
       }
     },
+    "Die Erstattung wird in Auswertungen mit der Buchung verrechnet. Buchungen und Kontostände bleiben unverändert." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reports offset the refund against the transaction. Transactions and account balances stay unchanged."
+          }
+        }
+      }
+    },
     "Die Gruppe ist leer." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15182,6 +15193,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Refunds"
+          }
+        }
+      }
+    },
+    "Erstattungen aus Auswertungen herausrechnen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave refunds out of reports"
           }
         }
       }
@@ -24218,6 +24240,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "With an interest rate, only the principal share of each payment counts (interest accrues daily). Without one, the whole payment reduces the balance."
+          }
+        }
+      }
+    },
+    "Mit einer Buchung verknüpfte Erstattungen verringern deren Betrag in Summen, Budgets und Diagrammen und zählen nicht als Einnahme. Die Buchungen selbst bleiben unverändert." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refunds linked to a transaction reduce its amount in totals, budgets and charts and do not count as income. The transactions themselves stay unchanged."
           }
         }
       }

@@ -779,6 +779,27 @@ final class RefundLinkTests: XCTestCase {
         XCTAssertEqual(restored, before)
     }
 
+    /// #714 setting: refunds left out of the statistics is stored in the vault, and switching it
+    /// as well as linking while it is on reloads every total.
+    func testExcludingRefundsFromStatsPersistsAndReloadsTotals() async throws {
+        XCTAssertFalse(model.refundsExcludedFromStats)
+        let totals = model.totalsVersion
+        await model.setRefundsExcludedFromStats(true)
+        XCTAssertNil(model.errorMessage)
+        XCTAssertTrue(model.refundsExcludedFromStats)
+        XCTAssertGreaterThan(model.totalsVersion, totals)
+        let stored = try await model.requireVaultOffMain { try $0.refundsExcludedFromStats() }
+        XCTAssertTrue(stored)
+        try await settle()
+        let beforeLink = model.totalsVersion
+        await model.linkRefund(pair())
+        XCTAssertGreaterThan(model.totalsVersion, beforeLink, "a link now changes the totals")
+        await model.setRefundsExcludedFromStats(false)
+        let off = try await model.requireVaultOffMain { try $0.refundsExcludedFromStats() }
+        XCTAssertFalse(off)
+        XCTAssertFalse(model.refundsExcludedFromStats)
+    }
+
     func testAPartOfASplitIncomeIsTheRefund() async throws {
         let parts = try await split(refund, amounts: [9999, 1], notes: ["", "Outlay"])
         await model.linkRefund(pair(part: UUID().uuidString))

@@ -412,6 +412,7 @@ impl Vault {
         db: &rusqlite::Connection,
         filter: &BookingFilter,
     ) -> Result<(String, String, Vec<Box<dyn ToSql>>, String), CoreError> {
+        self.refund_offsets_ready(db)?;
         let mut wh: Vec<String> = vec![LIVE_BOOKINGS_SQL.into()];
         let mut args: Vec<Box<dyn ToSql>> = vec![];
         let mut cte = String::new();
@@ -491,10 +492,11 @@ impl Vault {
             Some(m) => {
                 wh.push(category_match_sql(m));
                 format!(
-                    "COALESCE((SELECT SUM(sp.amount_cents) FROM transaction_splits sp WHERE sp.transaction_id = t.id AND sp.category_id {m}), t.amount_cents)"
+                    "COALESCE((SELECT SUM(sp.amount_cents - refund_offset(t.id, sp.uuid)) FROM transaction_splits sp WHERE sp.transaction_id = t.id AND sp.category_id {m}), t.amount_cents - refund_offset(t.id, ''))"
                 )
             }
-            None => "t.amount_cents".to_string(),
+            // linked refunds left out of the sums when the user chose so (`refunds::offsets`)
+            None => "t.amount_cents - refund_offset_total(t.id)".to_string(),
         };
         if let Some(from) = filter.date_from.as_ref().filter(|s| !s.is_empty()) {
             args.push(Box::new(from.clone()));

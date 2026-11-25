@@ -66,15 +66,34 @@ pub(crate) fn has_other_currencies(conn: &rusqlite::Connection) -> rusqlite::Res
 /// `extra`: more columns of `t` (e.g. ", t.currency AS currency"); `condition`:
 /// more conditions on `t` (e.g. " AND t.account_id = ?1"). Both appear in both
 /// halves of the UNION, so `condition` must use numbered parameters.
+/// Amounts leave out linked refunds when the user chose so (`refund_offset`, #714): call
+/// `Vault::refund_offsets_ready` before running the query.
 pub(crate) fn effective_sql(extra: &str, condition: &str) -> String {
+    effective_rows(extra, condition, true)
+}
+
+/// `effective_sql` with the stored amounts, whatever the refund setting (local interface).
+pub(crate) fn stored_effective_sql(extra: &str, condition: &str) -> String {
+    effective_rows(extra, condition, false)
+}
+
+fn effective_rows(extra: &str, condition: &str, net_refunds: bool) -> String {
+    let (whole, part) = if net_refunds {
+        (
+            " - refund_offset(t.id, '')",
+            " - refund_offset(t.id, s.uuid)",
+        )
+    } else {
+        ("", "")
+    };
     format!(
         "(
-    SELECT t.category_id AS category_id, t.amount_cents AS amount_cents, t.booking_date AS booking_date{extra}
+    SELECT t.category_id AS category_id, t.amount_cents{whole} AS amount_cents, t.booking_date AS booking_date{extra}
       FROM transactions t
      WHERE t.deleted_ms IS NULL{condition}
        AND NOT EXISTS (SELECT 1 FROM transaction_splits s WHERE s.transaction_id = t.id)
     UNION ALL
-    SELECT s.category_id, s.amount_cents, t.booking_date{extra}
+    SELECT s.category_id, s.amount_cents{part}, t.booking_date{extra}
       FROM transaction_splits s JOIN transactions t ON t.id = s.transaction_id
      WHERE t.deleted_ms IS NULL{condition}
 )"
@@ -127,6 +146,7 @@ impl Vault {
     ) -> Result<Vec<CategoryBudgetStatus>, CoreError> {
         let (from, to) = month_range(year, month)?;
         let db = self.db()?;
+        self.refund_offsets_ready(&db)?;
         let mut own: HashMap<Option<i64>, i64> = HashMap::new();
         {
             let mut stmt = db.prepare(&format!(
@@ -428,7 +448,7 @@ pub(crate) fn cashflow_for(
         ..Default::default()
     };
     let mut acc: HashMap<String, (i64, i64)> = HashMap::new();
-    v.visit_bookings(&db, &filter, |_, b| {
+    v.visit_bookings(&db, &filter, |share, b| {
         // other currencies are never added to the sums, unless one account is
         // selected (#1049); in a totals context only the effective total set
         // contributes (#337) — a directly requested account is a proof view
@@ -439,7 +459,8 @@ pub(crate) fn cashflow_for(
         {
             return;
         }
-        let (date, amt) = (&b.booking_date, b.amount_cents);
+        // the KPI share: the amount, without linked refunds when they are left out
+        let (date, amt) = (&b.booking_date, share);
         // Non-ASCII / malformed dates are skipped instead of panicking on a slice.
         let key = match granularity {
             PeriodGranularity::Month => date.get(..7).map(str::to_string),

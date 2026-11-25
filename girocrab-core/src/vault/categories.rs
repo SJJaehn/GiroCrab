@@ -221,6 +221,7 @@ impl Vault {
             7
         };
         let db = self.db()?;
+        self.refund_offsets_ready(&db)?;
         let rows = Self::category_rows(&db)?;
         let ids = Self::category_subtree(&rows, category_id);
         let in_list = |v: &[i64]| v.iter().map(i64::to_string).collect::<Vec<_>>().join(",");
@@ -266,6 +267,7 @@ impl Vault {
             return Ok(Vec::new());
         }
         let db = self.db()?;
+        self.refund_offsets_ready(&db)?;
         // No booking in another currency (the usual vault): nothing to add, no category tree read.
         if !crate::planning::has_other_currencies(&db)? {
             return Ok(Vec::new());
@@ -321,6 +323,7 @@ impl Vault {
             return Ok(Vec::new());
         }
         let db = self.db()?;
+        self.refund_offsets_ready(&db)?;
         if !crate::planning::has_other_currencies(&db)? {
             return Ok(Vec::new());
         }
@@ -639,6 +642,7 @@ impl Vault {
         untagged_only: bool,
     ) -> Result<Vec<Category>, CoreError> {
         let db = self.db()?;
+        self.refund_offsets_ready(&db)?;
         let rows = Self::category_rows(&db)?;
         let mut totals: HashMap<Option<i64>, (i64, u32)> = HashMap::new();
         {

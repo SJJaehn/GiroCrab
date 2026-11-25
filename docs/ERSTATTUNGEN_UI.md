@@ -54,7 +54,9 @@ Soll eine Erstattung eine Ausgabe in den Auswertungen ausgleichen, ordnet man ih
 dieselbe Kategorie zu oder schaltet in den Einstellungen unter „Auswertungen“
 „Erstattungen mit der Ursprungsbuchung verrechnen“ ein. Dann zählt die Erstattung
 nicht als Einnahme und die Ursprungsbuchung nur mit dem behaltenen Betrag (Summen,
-Budgets, Kennzahlen, Cashflow, Tag-Summen), auch rückwirkend in deren Monat.
+Budgets, Kennzahlen, Cashflow, Dashboard, Tag-Summen), auch rückwirkend in deren
+Monat. Verrechnet wird nur, wenn beide Buchungen im betrachteten Kontoumfang liegen:
+Ein einzelnes Konto ergibt weiter die Summe seiner Buchungen.
 Buchungen, Liste und Kontostände bleiben unverändert. Zuteilung und Kapazitäten berechnet ausschließlich der Kern.
 
 Das Kreuz unter macOS und Linux entfernt genau eine Verknüpfung. Unter macOS stellen

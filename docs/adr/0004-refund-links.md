@@ -218,14 +218,19 @@ dialog (#714: "links must not change amounts, categories or balances").
 The setting `stats.net_refunds` (off by default, per device) nets linked
 refunds against their originals in the statistics: the refund endpoint counts `amount - allocated`,
 the original endpoint `amount + allocated`. This applies to category totals and
-history, budgets, selection sums and KPI tiles, cashflow and tag totals. Bookings,
+history, budgets, selection sums and KPI tiles, cashflow, the dashboard's monthly
+flows and tag totals. A link nets only when its other booking lies in the accounts
+the aggregate sums (the selection, or the totals set in a totals context), so a
+single account still adds up to its own bookings. Bookings,
 list rows, balances and the local API keep the stored amounts. The aggregates read
-amounts through the SQL functions `refund_offset(id, part)` and
-`refund_offset_total(id)` (`girocrab-core/src/refunds/offsets.rs`), backed by the
+amounts through the SQL functions `refund_offset(id, part, scope)` and
+`refund_offset_total(id, scope)` (`girocrab-core/src/refunds/offsets.rs`), backed by the
 same allocation as the refund card. Only `Vault::effective_sql` and `filter_clauses`
 hand out SQL that calls them, and both rebuild the offsets for the current data
 stamp first. The refunded amount counts in the original's category and month, also
-retroactively. Unlike the archived projection, it adds no second read path per report.
+retroactively. Off, or without a live link, the SQL carries plain amounts and nothing
+is loaded. Unlike the archived projection, it adds no second read path per report.
+The Windows top-spending fallback (no budgets) sums loaded rows and stays unnetted.
 
 ## Not covered
 

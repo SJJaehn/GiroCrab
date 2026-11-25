@@ -4558,4 +4558,73 @@ mod stats_netting {
         l.f.v.set_net_refunds_in_stats(false).unwrap();
         assert_eq!(cash(&l), cash_before);
     }
+
+    /// Audit (#714): a link nets only when its other booking is in the accounts summed, so a
+    /// single account still adds up to its own bookings.
+    #[test]
+    fn netting_follows_the_account_scope() {
+        let f = Fixture::new();
+        let other =
+            f.v.create_offline_account("Card".into(), AccountKind::Cash, "EUR".into(), 0)
+                .unwrap();
+        let original = f.add("original", -10_000);
+        let refund = f.add("refund", 3_000);
+        raw(
+            &f.v,
+            &format!("UPDATE transactions SET account_id={other} WHERE id={refund}"),
+        );
+        f.link(refund, "", original, "");
+        f.v.set_net_refunds_in_stats(true).unwrap();
+        let sums = |accounts: Vec<i64>| {
+            let page =
+                f.v.list_transactions(BookingFilter {
+                    account_ids: accounts,
+                    ..Default::default()
+                })
+                .unwrap();
+            (page.income_cents, page.expense_cents)
+        };
+        assert_eq!(sums(Vec::new()), (0, -7_000));
+        assert_eq!(sums(vec![f.account, other]), (0, -7_000));
+        assert_eq!(sums(vec![f.account]), (0, -10_000));
+        assert_eq!(sums(vec![other]), (3_000, 0));
+        // the totals set: an account left out of the totals nets nothing into them
+        raw(
+            &f.v,
+            &format!("UPDATE accounts SET include_in_total=0 WHERE id={other}"),
+        );
+        let page =
+            f.v.list_transactions(BookingFilter {
+                respect_in_total: true,
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(page.expense_cents, -10_000);
+        assert_eq!(
+            crate::planning::cashflow_for(
+                &f.v,
+                crate::models::PeriodGranularity::Month,
+                1,
+                &[f.account],
+                2026,
+                1,
+                false,
+            )
+            .unwrap()[0]
+                .expense_cents,
+            10_000
+        );
+    }
+
+    #[test]
+    fn off_and_without_links_the_sql_carries_no_function_call() {
+        let f = Fixture::new();
+        let db = f.v.db().unwrap();
+        let sql = f.v.effective_sql(&db, "", "", &[]).unwrap();
+        assert!(!sql.contains("refund_offset"));
+        Vault::set_setting_inner(&db, crate::refunds::NET_REFUNDS_KEY, "1").unwrap();
+        // on, but no live link: still plain amounts, nothing loaded
+        let sql = f.v.effective_sql(&db, "", "", &[]).unwrap();
+        assert!(!sql.contains("refund_offset"));
+    }
 }

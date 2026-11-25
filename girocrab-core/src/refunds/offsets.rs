@@ -4,12 +4,14 @@
 //! refunded purchase counts only what was kept). Bookings, their list rows and balances never
 //! change: only the aggregates read amounts through the SQL functions registered here.
 //!
-//! `refund_offset(id, part)` is the offset of one endpoint (`''` = the whole booking),
-//! `refund_offset_total(id)` the sum over all endpoints of a booking. Both read the map the
+//! `refund_offset(id, part, scope)` is the offset of one endpoint (`''` = the whole booking),
+//! `refund_offset_total(id, scope)` the sum over all endpoints of a booking. `scope` lists the
+//! aggregate's accounts (`''` = all): a link counts only when its other booking is in there,
+//! so a single account or the totals set still adds up to its own bookings. Both read the map the
 //! last [`Vault::refund_offsets_ready`] built. Aggregates never call it themselves: they get
 //! their SQL from [`Vault::effective_sql`] or `filter_clauses`, which bring the map up to date.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, PoisonError, RwLock};
 
 use rusqlite::Connection;
@@ -24,29 +26,56 @@ pub const NET_REFUNDS_KEY: &str = "stats.net_refunds";
 
 #[derive(Default)]
 pub(crate) struct Offsets {
-    /// booking id → (sum over its endpoints, offset per part; `""` = whole booking)
-    by_booking: HashMap<i64, (i64, HashMap<String, i64>)>,
+    /// booking id → (part, account of the linked booking, cents); `""` = whole booking
+    by_booking: HashMap<i64, Vec<(String, i64, i64)>>,
 }
 
 impl Offsets {
-    fn add(&mut self, id: i64, part: &str, cents: i64) {
-        let entry = self.by_booking.entry(id).or_default();
-        entry.0 = entry.0.saturating_add(cents);
-        let slot = entry.1.entry(part.to_string()).or_default();
-        *slot = slot.saturating_add(cents);
-    }
-
-    fn of(&self, id: i64, part: &str) -> i64 {
+    fn add(&mut self, id: i64, part: &str, counterpart_account: i64, cents: i64) {
         self.by_booking
-            .get(&id)
-            .and_then(|b| b.1.get(part))
-            .copied()
-            .unwrap_or(0)
+            .entry(id)
+            .or_default()
+            .push((part.to_string(), counterpart_account, cents));
     }
 
-    fn total(&self, id: i64) -> i64 {
-        self.by_booking.get(&id).map_or(0, |b| b.0)
+    /// What `id` (one `part`, or all parts with `None`) leaves out for links whose other
+    /// booking lies in `scope` (empty = every account): a link to a booking outside the
+    /// selection keeps both amounts, so a single account still adds up to its bookings.
+    fn sum(&self, id: i64, part: Option<&str>, scope: &Scope) -> i64 {
+        self.by_booking.get(&id).map_or(0, |entries| {
+            entries
+                .iter()
+                .filter(|(p, account, _)| {
+                    part.is_none_or(|part| p == part) && scope.contains(*account)
+                })
+                .fold(0i64, |sum, (_, _, cents)| sum.saturating_add(*cents))
+        })
     }
+}
+
+/// The accounts an aggregate covers, as the SQL literal `scope_sql` writes ("" = all).
+struct Scope(Option<HashSet<i64>>);
+
+impl Scope {
+    fn parse(text: &str) -> Self {
+        if text.is_empty() {
+            return Scope(None);
+        }
+        Scope(Some(
+            text.split(',').filter_map(|id| id.parse().ok()).collect(),
+        ))
+    }
+
+    fn contains(&self, account: i64) -> bool {
+        self.0.as_ref().is_none_or(|set| set.contains(&account))
+    }
+}
+
+/// The scope argument of `refund_offset`: the aggregate's accounts (empty = all), as a SQL
+/// string literal of comma-separated ids (integers only, nothing to escape).
+pub(crate) fn scope_sql(accounts: &[i64]) -> String {
+    let ids: Vec<String> = accounts.iter().map(i64::to_string).collect();
+    format!("'{}'", ids.join(","))
 }
 
 /// The map the SQL functions read, with the (setting, data) state it was built for (`None`:
@@ -63,20 +92,32 @@ impl OffsetSlot {
             .clone()
     }
 
-    /// Registers `refund_offset` and `refund_offset_total` on the vault's connection.
+    /// Registers `refund_offset(id, part, scope)` and `refund_offset_total(id, scope)` on the
+    /// vault's connection. The scope is a constant per query: parsed once (auxiliary data).
     pub(crate) fn register(&self, conn: &Connection) -> rusqlite::Result<()> {
         let slot = OffsetSlot(self.0.clone());
-        conn.create_scalar_function("refund_offset", 2, FunctionFlags::SQLITE_UTF8, move |ctx| {
+        conn.create_scalar_function("refund_offset", 3, FunctionFlags::SQLITE_UTF8, move |ctx| {
             let id: i64 = ctx.get(0)?;
             let part: Option<String> = ctx.get(1)?;
-            Ok(slot.current().of(id, part.as_deref().unwrap_or("")))
+            let scope = ctx.get_or_create_aux(2, |v| {
+                Ok::<_, rusqlite::Error>(Scope::parse(v.as_str().unwrap_or("")))
+            })?;
+            Ok(slot
+                .current()
+                .sum(id, Some(part.as_deref().unwrap_or("")), &scope))
         })?;
         let slot = OffsetSlot(self.0.clone());
         conn.create_scalar_function(
             "refund_offset_total",
-            1,
+            2,
             FunctionFlags::SQLITE_UTF8,
-            move |ctx| Ok(slot.current().total(ctx.get(0)?)),
+            move |ctx| {
+                let id: i64 = ctx.get(0)?;
+                let scope = ctx.get_or_create_aux(1, |v| {
+                    Ok::<_, rusqlite::Error>(Scope::parse(v.as_str().unwrap_or("")))
+                })?;
+                Ok(slot.current().sum(id, None, &scope))
+            },
         )
     }
 }
@@ -88,28 +129,42 @@ impl Vault {
     }
 
     /// Brings the offsets the SQL functions read up to date with the setting and the data
-    /// `db` shows. Every aggregate calls it before a query that uses them.
-    pub(crate) fn refund_offsets_ready(&self, db: &Connection) -> CoreResult<()> {
+    /// `db` shows. `true` when there is anything to net: otherwise the caller emits plain
+    /// amounts (no function call per row). Without a live link nothing is loaded.
+    pub(crate) fn refund_offsets_ready(&self, db: &Connection) -> CoreResult<bool> {
         let on = Self::refunds_netted(db)?;
         let stamp = self.data_stamp(db);
         let slot = &self.refund_offsets.0;
-        if slot.read().unwrap_or_else(PoisonError::into_inner).0 == Some((on, stamp)) {
-            return Ok(());
+        {
+            let current = slot.read().unwrap_or_else(PoisonError::into_inner);
+            if current.0 == Some((on, stamp)) {
+                return Ok(!current.1.by_booking.is_empty());
+            }
         }
         let mut offsets = Offsets::default();
-        if on {
-            for a in &self.refund_projection(db)?.allocations {
+        let any_link = on
+            && db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM refund_links WHERE deleted_ms IS NULL)",
+                [],
+                |r| r.get::<_, bool>(0),
+            )?;
+        if any_link {
+            let resolved = self.refund_projection(db)?;
+            let account = |id: i64| resolved.state.books.get(&id).map(|b| b.account_id);
+            for a in &resolved.allocations {
                 if let (Some(r), Some(o)) = (&a.refund, &a.original)
                     && a.cents != 0
+                    && let (Some(ra), Some(oa)) = (account(r.0), account(o.0))
                 {
-                    offsets.add(r.0, &r.1, a.cents);
-                    offsets.add(o.0, &o.1, a.cents.saturating_neg());
+                    offsets.add(r.0, &r.1, oa, a.cents);
+                    offsets.add(o.0, &o.1, ra, a.cents.saturating_neg());
                 }
             }
         }
+        let netting = !offsets.by_booking.is_empty();
         let built = db.is_autocommit().then_some((on, stamp));
         *slot.write().unwrap_or_else(PoisonError::into_inner) = (built, Arc::new(offsets));
-        Ok(())
+        Ok(netting)
     }
 }
 

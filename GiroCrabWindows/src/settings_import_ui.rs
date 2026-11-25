@@ -1032,8 +1032,7 @@ fn wire_settings(win: &MainWindow) {
             "Wird gespeichert …",
             move || Ok(save_net_refunds(&v, on)),
             move |win, (stored, saved)| {
-                win.global::<SettingsImportState>()
-                    .set_net_refunds(stored);
+                win.global::<SettingsImportState>().set_net_refunds(stored);
                 match saved {
                     // every total, budget and chart reads the setting: reload like a refund link change
                     Ok(()) => {
@@ -1072,9 +1071,7 @@ fn wire_settings(win: &MainWindow) {
 /// Stores the switch and reads it back; the stored state is what the checkbox shows, also when
 /// saving failed.
 fn save_net_refunds(v: &Vault, on: bool) -> (bool, Result<(), String>) {
-    let saved = v
-        .set_net_refunds_in_stats(on)
-        .map_err(|e| e.to_string());
+    let saved = v.set_net_refunds_in_stats(on).map_err(|e| e.to_string());
     let stored = v.net_refunds_in_stats().unwrap_or(!on);
     (stored, saved)
 }

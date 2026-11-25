@@ -61,39 +61,43 @@ pub(crate) fn has_other_currencies(conn: &rusqlite::Connection) -> rusqlite::Res
     )
 }
 
-/// Bookings as (category_id, amount_cents, booking_date) rows where a split
-/// booking contributes its split amounts instead of the parent category.
-/// `extra`: more columns of `t` (e.g. ", t.currency AS currency"); `condition`:
-/// more conditions on `t` (e.g. " AND t.account_id = ?1"). Both appear in both
-/// halves of the UNION, so `condition` must use numbered parameters.
-/// Amounts net linked refunds against their originals when the user chose so
-/// (`refund_offset`, #714). Only this method hands out that SQL: it brings the offsets the
-/// function reads up to date with `db` first, so no aggregate can read a stale map.
 impl Vault {
+    /// Bookings as (category_id, amount_cents, booking_date) rows where a split
+    /// booking contributes its split amounts instead of the parent category.
+    /// `extra`: more columns of `t` (e.g. ", t.currency AS currency"); `condition`:
+    /// more conditions on `t` (e.g. " AND t.account_id = ?1"). Both appear in both
+    /// halves of the UNION, so `condition` must use numbered parameters.
+    /// Amounts net linked refunds against their originals when the user chose so
+    /// (`refund_offset`, #714), for links whose other booking lies in `accounts` (the
+    /// aggregate's accounts, empty = all). Only this method hands out that SQL: it brings the
+    /// offsets up to date with `db` first, so no aggregate can read a stale map.
     pub(crate) fn effective_sql(
         &self,
         db: &rusqlite::Connection,
         extra: &str,
         condition: &str,
+        accounts: &[i64],
     ) -> Result<String, CoreError> {
-        self.refund_offsets_ready(db)?;
-        Ok(effective_rows(extra, condition, true))
+        let scope = self
+            .refund_offsets_ready(db)?
+            .then(|| crate::refunds::scope_sql(accounts));
+        Ok(effective_rows(extra, condition, scope.as_deref()))
     }
 }
 
 /// `effective_sql` with the stored amounts, whatever the refund setting (local interface).
 pub(crate) fn stored_effective_sql(extra: &str, condition: &str) -> String {
-    effective_rows(extra, condition, false)
+    effective_rows(extra, condition, None)
 }
 
-fn effective_rows(extra: &str, condition: &str, net_refunds: bool) -> String {
-    let (whole, part) = if net_refunds {
-        (
-            " - refund_offset(t.id, '')",
-            " - refund_offset(t.id, s.uuid)",
-        )
-    } else {
-        ("", "")
+/// `scope`: the `refund_offset` scope literal when refunds are netted, `None` for plain amounts.
+fn effective_rows(extra: &str, condition: &str, scope: Option<&str>) -> String {
+    let (whole, part) = match scope {
+        Some(scope) => (
+            format!(" - refund_offset(t.id, '', {scope})"),
+            format!(" - refund_offset(t.id, s.uuid, {scope})"),
+        ),
+        None => (String::new(), String::new()),
     };
     format!(
         "(
@@ -161,7 +165,7 @@ impl Vault {
                 "SELECT category_id, SUM(amount_cents) FROM {}
                  WHERE booking_date >= ?1 AND booking_date <= ?2 GROUP BY category_id",
                 // budgets are amounts in EUR: other currencies are never added to them (#1049)
-                self.effective_sql(&db, "", sums_condition(0))?
+                self.effective_sql(&db, "", sums_condition(0), &[])?
             ))?;
             for row in stmt.query_map(params![from, to], |r| {
                 Ok((r.get::<_, Option<i64>>(0)?, r.get::<_, i64>(1)?))

@@ -545,6 +545,7 @@ QtObject {
         vaultLoaded = false
         hasOwnVault = false
         demoActive = false
+        netRefundsInStats = false
         groups = []; userGroups = []; accountsByID = ({}); accountMarkers = ({}); bookings = []; categories = []; categoryTree = []; uncategorizedFilteredCount = null
         connections = []; page = null; ListBalances.clear(); merchantStats = null; merchantAccountStats = null; streamItems = []; streamModel.clear(); dayGroups = []; history = []
         rules = []; settings = []; dashboard = null; budgets = []; recurring = []; recurringMonth = null; recurringHidden = []

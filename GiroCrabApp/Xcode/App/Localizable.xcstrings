@@ -17294,6 +17294,17 @@
         }
       }
     },
+    "Gilt für alle Buchungen von „%@“." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applies to all bookings of “%@”."
+          }
+        }
+      }
+    },
     "Gilt nur für diesen Bankzugang. Eine andere Anwendung braucht beim nächsten Abruf eine neue Zustimmung bei der Bank." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23569,6 +23580,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Licence"
+          }
+        }
+      }
+    },
+    "Logo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logo"
           }
         }
       }

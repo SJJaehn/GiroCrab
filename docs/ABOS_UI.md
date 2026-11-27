@@ -25,7 +25,9 @@ Sidebar › Zahlungen › **Abos & Verträge** (`SubscriptionsView`, `SidebarIte
 - **Farben:** Frist in 0 bis 30 Tagen → Warnfarbe; rechtzeitig gekündigt, Vertrag läuft noch → Einnahmefarbe.
   **Durchgestrichen** wird erst, wenn der Vertrag beendet ist.
 - **Icon:** das Händler-Signet der letzten Buchung (`MerchantSignet`); ohne Buchung (manuelle Einträge) eine
-  Symbol-Kachel. Ein im Inspektor gewähltes Symbol ersetzt das Signet auch bei erkannten Serien.
+  Symbol-Kachel. Ein im Inspektor gewähltes Symbol ersetzt das Signet auch bei erkannten Serien. Ohne eigenes Symbol
+  zeigt der Inspektor einer erkannten Serie die Logo-Domain ihres Händlers zum Ändern (`MerchantDomainRow`, wie im
+  Buchungs-Inspektor; gilt für alle Buchungen des Händlers, nicht bei Privatpersonen oder ausgeschalteter Erkennung).
 - **Name (#2026):** erkannte Serien heißen wie die Erkennung sie nennt (Händler oder Empfänger), lassen sich im
   Inspektor aber umbenennen (Feld „Name“, leer = erkannter Name, steht als Platzhalter im Feld). Die Suche findet
   einen umbenannten Eintrag auch unter dem erkannten Namen. Die Liste „Wiederkehrende Buchungen“ zeigt weiter den

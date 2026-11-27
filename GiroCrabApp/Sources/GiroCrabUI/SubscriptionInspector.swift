@@ -212,6 +212,17 @@ private struct SubscriptionDetailView: View {
                     }
                 }
             }
+            // the logo domain belongs to the merchant (all its bookings), like in the booking inspector
+            if draft.symbol == nil, model.merchantRecognitionEnabled,
+               let merchant = model.subscriptionBookings[item.id]?.first?.merchant, !merchant.isPerson {
+                fieldRow("Logo") {
+                    VStack(alignment: .leading, spacing: 2) {
+                        MerchantDomainRow(merchant: merchant)
+                        Text("Gilt für alle Buchungen von „\(merchant.name)“.")
+                            .appFont(.caption2).foregroundStyle(Theme.tertiary).sensitive()
+                    }
+                }
+            }
         }
     }
 

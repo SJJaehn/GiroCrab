@@ -50,7 +50,7 @@ private struct SubscriptionDetailView: View {
             Divider()
             VStack(alignment: .leading, spacing: 12) {
                 Text("Information").appFont(.callout, weight: .semibold)
-                if manual != nil { manualFields }
+                if manual != nil { manualFields } else if let s = item.series { seriesFields(s) }
                 rhythmField
                 contractFields
                 // below the fields: a line that appears or disappears must not push the controls above it
@@ -70,7 +70,7 @@ private struct SubscriptionDetailView: View {
         }
         .onChange(of: draft) { old, new in
             // text is saved after a pause, switches and pickers at once
-            scheduleSave(delay: old.note == new.note ? 0 : 400)
+            scheduleSave(delay: old.note == new.note && old.name == new.name ? 0 : 400)
         }
         .onChange(of: manual) { _, _ in scheduleSave(delay: 400) }
         .onAppear {
@@ -190,6 +190,27 @@ private struct SubscriptionDetailView: View {
                     get: { DateText.parseISODay(manual?.startDate ?? "") ?? Self.fallbackDate },
                     set: { manual?.startDate = DateText.iso($0) }), displayedComponents: .date)
                     .labelsHidden()
+            }
+        }
+    }
+
+    /// Name and symbol of a detected series (#2026): empty name = the detected one, shown as the prompt.
+    private func seriesFields(_ s: RecurringSeries) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            fieldRow("Name") {
+                TextField("Name", text: Binding(get: { draft.name ?? "" }, set: { draft.name = $0.isEmpty ? nil : $0 }),
+                          prompt: Text(s.name))
+                    .textFieldStyle(.roundedBorder).sensitive()
+            }
+            fieldRow("Symbol") {
+                HStack(spacing: 8) {
+                    SubscriptionSymbolPicker(symbol: $draft.symbol)
+                    if draft.symbol != nil {
+                        Button("Händler-Logo") { draft.symbol = nil }
+                            .buttonStyle(.borderless).appFont(.caption)
+                            .help("Statt des Symbols wieder das Logo des Händlers zeigen")
+                    }
+                }
             }
         }
     }

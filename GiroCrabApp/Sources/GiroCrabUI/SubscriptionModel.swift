@@ -92,8 +92,20 @@ struct SubscriptionDetails: Codable, Equatable {
     var cancelledOn: String?
     /// ISO day a free trial ends; the payments start after it.
     var trialEnd: String?
+    /// Own name of a detected series (#2026); nil: the name the detection gives it. Manual entries keep
+    /// their name in `ManualSubscription`.
+    var name: String?
+    /// Own symbol of a detected series instead of the merchant signet; nil: the signet. Manual entries
+    /// keep theirs in `ManualSubscription`.
+    var symbol: String?
 
     init() {}
+
+    /// The own name when one is set, else `detected`.
+    func displayName(detected: String) -> String {
+        let own = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return own.isEmpty ? detected : own
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
@@ -105,10 +117,12 @@ struct SubscriptionDetails: Codable, Equatable {
         cancelled = try c.decodeIfPresent(Bool.self, forKey: .cancelled) ?? false
         cancelledOn = try c.decodeIfPresent(String.self, forKey: .cancelledOn)
         trialEnd = try c.decodeIfPresent(String.self, forKey: .trialEnd)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        symbol = try c.decodeIfPresent(String.self, forKey: .symbol)
     }
 
     private enum Keys: String, CodingKey {
-        case note, noticeValue, noticeUnit, contractEnd, renewalMonths, cancelled, cancelledOn, trialEnd
+        case note, noticeValue, noticeUnit, contractEnd, renewalMonths, cancelled, cancelledOn, trialEnd, name, symbol
     }
 }
 

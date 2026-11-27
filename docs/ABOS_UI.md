@@ -25,7 +25,11 @@ Sidebar › Zahlungen › **Abos & Verträge** (`SubscriptionsView`, `SidebarIte
 - **Farben:** Frist in 0 bis 30 Tagen → Warnfarbe; rechtzeitig gekündigt, Vertrag läuft noch → Einnahmefarbe.
   **Durchgestrichen** wird erst, wenn der Vertrag beendet ist.
 - **Icon:** das Händler-Signet der letzten Buchung (`MerchantSignet`); ohne Buchung (manuelle Einträge) eine
-  Symbol-Kachel.
+  Symbol-Kachel. Ein im Inspektor gewähltes Symbol ersetzt das Signet auch bei erkannten Serien.
+- **Name (#2026):** erkannte Serien heißen wie die Erkennung sie nennt (Händler oder Empfänger), lassen sich im
+  Inspektor aber umbenennen (Feld „Name“, leer = erkannter Name, steht als Platzhalter im Feld). Die Suche findet
+  einen umbenannten Eintrag auch unter dem erkannten Namen. Die Liste „Wiederkehrende Buchungen“ zeigt weiter den
+  erkannten Namen.
 - **Sortieren:** Name, Betrag pro Jahr (nach Betrag, größte zuerst), Nächste Zahlung, Kündigungsfrist. **Filter:**
   Suche (Name, Notiz), Art (Ausgaben/Einnahmen), Turnus, Status (Aktiv, Inaktiv, Gekündigt, Frist in 30 Tagen), „Beendete ausblenden“. Der Hinzufügen-Dialog filtert zusätzlich nach Konto.
 - „Buchungen im Konto anzeigen“ springt ins Konto und filtert auf alle Buchungen dieses Abos (Händler-Liste, alle Zeiträume). Ein Klick auf eine Zeile wählt den Eintrag; die **rechte Spalte** zeigt Turnus (änderbar), Vertragsfelder und **alle
@@ -34,6 +38,7 @@ Sidebar › Zahlungen › **Abos & Verträge** (`SubscriptionsView`, `SidebarIte
   (`carrySubscription`).
 
 ## Vertragsfelder (alle optional)
+Name und Symbol (nur erkannte Serien; manuelle Einträge haben eigene Felder),
 Kündigungsfrist (Tage/Wochen/Monate), Vertragsende, Verlängerung um (Monate), Gekündigt, Gekündigt am, Probezeit, Notiz.
 - „Kündigen bis“ = Vertragsende − Kündigungsfrist. Ohne Vertragsende gilt bei eingetragener Kündigungsfrist die nächste
   Zahlung als Ende (Verlängerung: der Turnus, falls keine eingetragen ist). „Gekündigt“ belegt das Vertragsende mit der

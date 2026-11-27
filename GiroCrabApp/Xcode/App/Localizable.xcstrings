@@ -18869,6 +18869,17 @@
         }
       }
     },
+    "Händler-Logo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merchant Logo"
+          }
+        }
+      }
+    },
     "Händler-Logos" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31636,6 +31647,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Statistics"
+          }
+        }
+      }
+    },
+    "Statt des Symbols wieder das Logo des Händlers zeigen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the merchant's logo again instead of the icon"
           }
         }
       }

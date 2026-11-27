@@ -201,6 +201,12 @@ private struct SubscriptionDetailView: View {
             fieldRow("Symbol") {
                 SubscriptionSymbolPicker(symbol: Binding(get: { manual?.symbol }, set: { manual?.symbol = $0 }))
             }
+            fieldRow("Logo-Domain") {
+                TextField("Logo-Domain", text: Binding(get: { manual?.domain ?? "" },
+                                                       set: { manual?.domain = $0.isEmpty ? nil : $0 }),
+                          prompt: Text("z. B. enbw.com"))
+                    .textFieldStyle(.roundedBorder).autocorrectionDisabled().sensitive()
+            }
             fieldRow("Eine Zahlung am") {
                 DatePicker("", selection: Binding(
                     get: { DateText.parseISODay(manual?.startDate ?? "") ?? Self.fallbackDate },
@@ -230,7 +236,7 @@ private struct SubscriptionDetailView: View {
             }
             // the logo domain belongs to the merchant (all its bookings), like in the booking inspector
             if draft.symbol == nil, model.merchantRecognitionEnabled,
-               let merchant = model.subscriptionBookings[item.id]?.first?.merchant, !merchant.isPerson {
+               let merchant = model.subscriptionBookings[item.id]?.first?.merchant {
                 fieldRow("Logo") {
                     VStack(alignment: .leading, spacing: 2) {
                         MerchantDomainRow(merchant: merchant)

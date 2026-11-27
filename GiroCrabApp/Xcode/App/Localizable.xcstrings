@@ -23628,6 +23628,17 @@
         }
       }
     },
+    "Logo-Domain" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logo Domain"
+          }
+        }
+      }
+    },
     "Logos aus dem Internet laden" : {
       "extractionState" : "manual",
       "localizations" : {

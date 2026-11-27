@@ -36,7 +36,9 @@ struct MerchantSignet: View {
         // merchant keeps its glyph, which would otherwise hide the logo the user asked for (#2026).
         let sharpLogo = logo.flatMap { $0.pixels >= 48 || merchant.domainSource == "override" ? $0.image : nil }
         ZStack {
-            if merchant.isPerson {
+            // a person shows initials, unless a logo domain was set by hand (#2026: the person
+            // guess also catches small firms with a contract)
+            if merchant.isPerson && (merchant.domainSource != "override" || sharpLogo == nil) {
                 // private person: calm circular initials, never a company logo
                 Circle().fill(Theme.personFill)
                 Text(merchant.monogram)

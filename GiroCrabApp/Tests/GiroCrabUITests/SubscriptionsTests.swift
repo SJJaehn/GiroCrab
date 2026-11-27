@@ -291,6 +291,24 @@ final class SubscriptionsTests: XCTestCase {
         model.setSubscription(first, marked: false)
     }
 
+    /// #2026: a manual entry shows the logo of the domain typed in, normalised like the core does.
+    func testManualDomainIsNormalisedForTheLogo() throws {
+        XCTAssertEqual(ManualSubscription.normalizedDomain(" https://www.Muster-Werke.de/kontakt?x=1 "), "muster-werke.de")
+        XCTAssertNil(ManualSubscription.normalizedDomain("kein punkt"))
+        XCTAssertNil(ManualSubscription.normalizedDomain(nil))
+        var m = ManualSubscription(id: "1", name: "Stadtwerke", amountCents: -5_000, group: SubscriptionGroup.monthly.rawValue,
+                                   currency: "EUR", startDate: "2026-01-01")
+        XCTAssertNil(m.logoMerchant)
+        m.domain = "www.stadtwerke-muster.de"
+        let logo = try XCTUnwrap(m.logoMerchant)
+        XCTAssertEqual(logo.domainCandidates, ["stadtwerke-muster.de"])
+        XCTAssertEqual(logo.domainSource, "override")
+        // entries stored before the field existed still load
+        let old = try JSONDecoder().decode(ManualSubscription.self, from: Data(
+            #"{"id":"1","name":"A","amountCents":-1,"group":0,"currency":"EUR","startDate":"2026-01-01","details":{}}"#.utf8))
+        XCTAssertNil(old.domain)
+    }
+
     func testDetailsWithoutNameStillDecode() throws {
         let d = try JSONDecoder().decode(SubscriptionDetails.self, from: Data(#"{"note":"x"}"#.utf8))
         XCTAssertNil(d.name)
